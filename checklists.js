@@ -23,13 +23,21 @@
 const CHECKLISTS = [
   {
     id: 'install-signoff',
-    version: 'draft-4',
+    version: 'draft-5',
     draft: true,
     name: 'Installation sign-off',
     fileLabel: 'Install-signoff',
     blurb: 'End-of-installation checks and customer sign-off',
     engineerDeclaration: 'I confirm the work above has been completed and checked as recorded.',
-    customerDeclaration: 'I confirm the system has been explained to me and I have received the handover information.',
+    // The customer signs only these points, on their own card, not the technical checks.
+    customerAcknowledgements: [
+      'I have been shown how to use my heating and hot water controls',
+      'The app has been set up for me',
+      'I understand my heat pump needs servicing every year to keep the warranty valid, and that Satsooma is happy to do this',
+      'I understand my handover pack will be emailed to me within 14 days'
+    ],
+    customerDeclaration: 'By signing, I confirm the points above.',
+    customerNote: 'The technical checks in this report are recorded and signed off by the installer.',
     sections: [
       {
         title: 'Outdoor unit',
@@ -98,7 +106,7 @@ const CHECKLISTS = [
           { id: 'remote-access', text: 'Remote access set up for the installer' },
           { id: 'customer-app', text: 'App set up for the customer' },
           { id: 'annual-maintenance', text: 'Annual maintenance explained: it is essential to keep the warranty valid, and Satsooma is happy to carry it out' },
-          { id: 'handover-pack', text: 'Handover pack and manuals left with the customer' },
+          { id: 'handover-pack-email', text: 'Customer told their handover pack will be emailed within 14 days' },
           { id: 'site-tidy', text: 'Site left clean and tidy, waste removed' }
         ]
       }

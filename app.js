@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.3.1';
+const APP_VERSION = '0.4.0';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
@@ -258,11 +258,17 @@ function showForm() {
       </div>
     </section>
     <section class="card">
-      <h2>Sign-off</h2>
+      <h2>Installer sign-off</h2>
       ${sigHtml('engineer', 'Engineer', cl.engineerDeclaration, '')}
-      <label class="check"><input type="checkbox" id="customerNotPresent" ${form.customerNotPresent ? 'checked' : ''}> Customer not present to sign</label>
+    </section>
+    <section class="card customercard">
+      <h2>For the customer</h2>
+      <label class="check"><input type="checkbox" id="customerNotPresent" ${form.customerNotPresent ? 'checked' : ''}> Customer not signing (not present, or prefers not to)</label>
       <div id="customerBlock" ${form.customerNotPresent ? 'hidden' : ''}>
-        ${sigHtml('customer', 'Customer', cl.customerDeclaration, `<div class="field" id="f-customerName"><label for="customerName">Customer name</label><input type="text" id="customerName" data-field="customerName" value="${esc(form.customerName)}" autocomplete="off"></div>`)}
+        <p class="muted small">Hand the phone to the customer for this part.</p>
+        <ul class="acks">${(cl.customerAcknowledgements || []).map(a => `<li>${esc(a)}</li>`).join('')}</ul>
+        ${sigHtml('customer', 'Customer', cl.customerDeclaration, `<div class="field" id="f-customerName"><label for="customerName">Your name</label><input type="text" id="customerName" data-field="customerName" value="${esc(form.customerName)}" autocomplete="off"></div>`)}
+        ${cl.customerNote ? `<p class="muted small">${esc(cl.customerNote)}</p>` : ''}
       </div>
     </section>
     <div class="errors" id="errors" hidden></div>
@@ -402,8 +408,8 @@ function validate() {
 
   if (!form.engineerSig) bad('sig-engineer', 'Engineer signature needed');
   if (!form.customerNotPresent) {
-    if (!form.customerName.trim()) bad('f-customerName', 'Add the customer name, or tick "Customer not present"');
-    if (!form.customerSig) bad('sig-customer', 'Customer signature needed, or tick "Customer not present"');
+    if (!form.customerName.trim()) bad('f-customerName', 'Add the customer name, or tick "Customer not signing"');
+    if (!form.customerSig) bad('sig-customer', 'Customer signature needed, or tick "Customer not signing"');
   }
   return errs;
 }
@@ -440,7 +446,7 @@ function buildData(cl, id, createdAt, pdfName) {
       engineer: { name: form.engineer.trim(), signed_at: form.engineerSigAt ? ukDateTime(new Date(form.engineerSigAt)) : '' },
       customer: form.customerNotPresent
         ? { present: false }
-        : { present: true, name: form.customerName.trim(), signed_at: form.customerSigAt ? ukDateTime(new Date(form.customerSigAt)) : '' }
+        : { present: true, name: form.customerName.trim(), signed_at: form.customerSigAt ? ukDateTime(new Date(form.customerSigAt)) : '', acknowledged: cl.customerAcknowledgements || [] }
     },
     pdf_file: pdfName
   };
@@ -596,7 +602,7 @@ async function buildPdf(cl, data) {
   y -= 6;
 
   // Sign-off
-  heading('Sign-off');
+  heading('Installer sign-off');
   async function sigBlock(label, declaration, name, at, sigUrl) {
     const dLines = wrap(declaration, FI, 9, CW);
     need(dLines.length * 12 + 130);
@@ -616,10 +622,23 @@ async function buildPdf(cl, data) {
     y -= bh + 16;
   }
   await sigBlock('Engineer', cl.engineerDeclaration, data.sign_off.engineer.name, data.sign_off.engineer.signed_at, form.engineerSig);
+  const ackH = data.sign_off.customer.present
+    ? (cl.customerAcknowledgements || []).reduce((h, a) => h + wrap(a, F, 10, CW - 14).length * 13 + 4, 0) + 6 + wrap(cl.customerDeclaration, FI, 9, CW).length * 12 + 130
+    : 30;
+  heading('Customer acknowledgement', ackH);   // keep the points and the signature on one page
   if (data.sign_off.customer.present) {
+    (cl.customerAcknowledgements || []).forEach(a => {
+      const lines = wrap(a, F, 10, CW - 14);
+      need(lines.length * 13 + 4);
+      text('•', M + 2, y - 10, 10, FB, C.peel);
+      lines.forEach((l, i) => text(l, M + 14, y - 10 - i * 13, 10, F));
+      y -= lines.length * 13 + 4;
+    });
+    y -= 6;
     await sigBlock('Customer', cl.customerDeclaration, data.sign_off.customer.name, data.sign_off.customer.signed_at, form.customerSig);
+    if (cl.customerNote) { wrap(cl.customerNote, FI, 9, CW).forEach(l => { need(12); text(l, M, y - 9, 9, FI, C.grey); y -= 12; }); y -= 8; }
   } else {
-    need(20); text('Customer: not present to sign', M, y - 10, 10, FB, C.grey); y -= 22;
+    need(20); text('The customer did not sign (not present, or preferred not to).', M, y - 10, 10, FI, C.grey); y -= 22;
   }
 
   // Accreditation strip
