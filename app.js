@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.4.2';
+const APP_VERSION = '0.4.3';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
@@ -128,7 +128,7 @@ async function showHome() {
       <h1>New report</h1>
       <div class="stack">
         ${CHECKLISTS.map(c => `<button class="btn big" data-act="new" data-id="${esc(c.id)}">
-          <span>${esc(c.name)}${c.draft ? ' (test)' : ''}</span><small>${esc(c.blurb)}</small></button>`).join('')}
+          <span>${esc(c.name)}${c.draft ? ' (trial)' : ''}</span><small>${esc(c.blurb)}</small></button>`).join('')}
       </div>
     </section>
     <section class="card">
@@ -224,7 +224,7 @@ function showForm() {
   form.itemPhotos = form.itemPhotos || {};
   app.innerHTML = `
     <button class="back" data-act="home">‹ Home (your progress is kept)</button>
-    ${cl.draft ? `<div class="draftnote"><strong>Test version.</strong> These checklist questions are a draft to try the app out. They'll be replaced with Satsooma's own checklist.</div>` : ''}
+    ${cl.draft ? `<div class="draftnote"><strong>Trial version.</strong> We're still fine-tuning this checklist, so questions may be added, removed or reworded. If anything is missing or unclear, let Martin know.</div>` : ''}
     <section class="card">
       <h1>${esc(cl.name)}</h1>
       <div class="field" id="f-jobRef">
@@ -536,7 +536,7 @@ async function buildPdf(cl, data) {
       y = H - 96 - 22;
       if (cl.draft) {
         page.drawRectangle({ x: M, y: y - 18, width: CW, height: 24, color: C.pith });
-        text('TEST VERSION - draft checklist wording, not Satsooma\'s final checklist', M + 10, y - 10, 9.5, FB, C.ink);
+        text('TRIAL VERSION - checklist questions may still be adjusted', M + 10, y - 10, 9.5, FB, C.ink);
         y -= 36;
       }
     } else {

@@ -3,8 +3,8 @@
 // Each checklist appears as a button on the home screen. To add or reword
 // questions, edit this file, then bump VERSION in sw.js so phones pick it up.
 //
-// draft: true prints a "TEST / DRAFT CHECKLIST" marker in the app and on the PDF.
-// Set it to false once the wording is Satsooma's own.
+// draft: true shows a "Trial version: questions may still be adjusted" note in
+// the app and on the PDF. Set it to false once the checklist has settled.
 //
 // Keep each item id unique and unchanged once in use: the data file Claude
 // reads uses these ids to file answers against the job.
