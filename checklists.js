@@ -12,7 +12,7 @@
 const CHECKLISTS = [
   {
     id: 'install-signoff',
-    version: 'draft-1',
+    version: 'draft-2',
     draft: true,
     name: 'Installation sign-off',
     fileLabel: 'Install-signoff',
@@ -47,9 +47,14 @@ const CHECKLISTS = [
         ]
       },
       {
-        title: 'Commissioning and handover',
+        title: 'Commissioning',
         items: [
-          { id: 'commissioned', text: 'Heat pump commissioned' },
+          { id: 'commissioned', text: 'Heat pump commissioned' }
+        ]
+      },
+      {
+        title: 'Handover',
+        items: [
           { id: 'customer-shown', text: 'Customer shown how to use the controls' },
           { id: 'handover-pack', text: 'Handover pack and manuals left with the customer' },
           { id: 'site-tidy', text: 'Site left clean and tidy, waste removed' }
