@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.4.1';
+const APP_VERSION = '0.4.2';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
@@ -17,6 +17,8 @@ const isoToUk = iso => { if (!iso) return ''; const [y, m, d] = iso.split('-'); 
 const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
 const ANSWER_LABEL = { yes: 'Yes', no: 'No', na: 'N/A' };
+const answerOptions = it => it.choices || ['yes', 'no', 'na'].map(key => ({ key, label: ANSWER_LABEL[key] }));
+const answerLabel = (it, key) => (answerOptions(it).find(o => o.key === key) || {}).label;
 
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -191,8 +193,8 @@ function itemHtml(it) {
   const showNote = a === 'no' || note;
   return `<div class="item" id="item-${esc(it.id)}" data-item="${esc(it.id)}">
     <p class="q">${esc(it.text)}</p>
-    <div class="seg" role="group" aria-label="${esc(it.text)}">
-      ${['yes', 'no', 'na'].map(k => `<button type="button" data-ans="${k}" aria-pressed="${a === k}">${ANSWER_LABEL[k]}</button>`).join('')}
+    <div class="seg${it.choices ? ' choices' : ''}" role="group" aria-label="${esc(it.text)}">
+      ${answerOptions(it).map(o => `<button type="button" data-ans="${esc(o.key)}" aria-pressed="${a === o.key}">${esc(o.label)}</button>`).join('')}
     </div>
     ${fieldsHtml(it)}
     ${itemPhotoHtml(it)}
@@ -418,14 +420,14 @@ function validate() {
 function buildData(cl, id, createdAt, pdfName) {
   const items = allItems(cl).map(it => ({
     section: it.section, id: it.id, question: it.text,
-    answer: ANSWER_LABEL[form.answers[it.id]], note: (form.notes[it.id] || '').trim(),
+    answer: answerLabel(it, form.answers[it.id]), ...(it.choices ? { choice: true } : {}), note: (form.notes[it.id] || '').trim(),
     readings: (it.fields || []).map(f => {
       const value = ((form.values || {})[it.id + '.' + f.id] || '').trim();
       return value ? { id: f.id, label: f.label, value, unit: unitFor(it, f) } : null;
     }).filter(Boolean),
     ...(it.photo ? { photo: !!(form.itemPhotos || {})[it.id] } : {})
   }));
-  const count = k => items.filter(i => i.answer === ANSWER_LABEL[k]).length;
+  const count = k => items.filter(i => !i.choice && i.answer === ANSWER_LABEL[k]).length;
   return {
     schema: 'satsooma.signoff.report',
     schema_version: 1,
@@ -438,7 +440,7 @@ function buildData(cl, id, createdAt, pdfName) {
     visit_date: isoToUk(form.visitDate),
     created_at: ukDateTime(createdAt),
     created_at_iso: createdAt.toISOString(),
-    summary: { checks: items.length, yes: count('yes'), no: count('no'), na: count('na') },
+    summary: { checks: items.filter(i => !i.choice).length, yes: count('yes'), no: count('no'), na: count('na') },
     items,
     outstanding: form.snags.trim(),
     photos: form.photos.length + Object.values(form.itemPhotos || {}).filter(Boolean).length,
@@ -587,7 +589,7 @@ async function buildPdf(cl, data) {
       need(h);
       const top = y;
       qLines.forEach((l, i) => text(l, M, top - 10 - i * 13, 10, F));
-      const col = item.answer === 'Yes' ? C.leaf : item.answer === 'No' ? C.no : C.grey;
+      const col = item.choice ? C.ink : item.answer === 'Yes' ? C.leaf : item.answer === 'No' ? C.no : C.grey;
       rightText(item.answer, W - M, top - 10, 10.5, FB, col);
       rLines.forEach((l, i) => text(l, M, top - 11 - qLines.length * 13 - i * 13, 9.5, FB, C.peel));
       nLines.forEach((l, i) => text(l, M, top - 10 - qLines.length * 13 - rLines.length * 13 - i * 12, 9, FI, C.grey));

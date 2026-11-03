@@ -17,13 +17,16 @@
 //   text: true          words rather than a number
 // Readings are optional and print on the PDF under the check.
 //
+// choices: [{ key, label }, ...] replaces Yes / No / N/A with your own answers
+// for that check (e.g. which frost protection was used).
+//
 // photo: 'Caption' gives a check its own "Take photo" button. If the check is
 // answered Yes, the photo is required; it prints on the PDF with that caption.
 
 const CHECKLISTS = [
   {
     id: 'install-signoff',
-    version: 'draft-5',
+    version: 'draft-6',
     draft: true,
     name: 'Installation sign-off',
     fileLabel: 'Install-signoff',
@@ -54,7 +57,14 @@ const CHECKLISTS = [
         items: [
           { id: 'flushed', text: 'System flushed and cleaned' },
           { id: 'pressure-tested', text: 'System pressure tested and free of leaks' },
-          { id: 'frost-protection', text: 'Frost protection in place (glycol or anti-freeze valves)' },
+          {
+            id: 'frost-protection-type', text: 'Frost protection?',
+            choices: [
+              { key: 'glycol', label: 'Glycol' },
+              { key: 'anti-freeze-valves', label: 'Anti-freeze valves' },
+              { key: 'not-required', label: 'Not required' }
+            ]
+          },
           { id: 'cylinder-discharge', text: 'Unvented cylinder discharge pipework and tundish installed correctly' },
           { id: 'emitters-balanced', text: 'Radiators / emitters balanced' }
         ]

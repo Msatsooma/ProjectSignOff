@@ -123,6 +123,8 @@ input:focus, textarea:focus { outline: 3px solid rgba(242,101,49,.35); border-co
 .seg button[aria-pressed=true][data-ans=yes] { background: var(--leaf); border-color: var(--leaf); color: #fff; }
 .seg button[aria-pressed=true][data-ans=yes]::before { content: "✓ "; }
 .seg button[aria-pressed=true][data-ans=no] { background: var(--no); border-color: var(--no); color: #fff; }
+.seg.choices button { font-size: 15px; line-height: 1.15; padding: 6px 8px; }
+.seg.choices button[aria-pressed=true] { background: var(--leaf); border-color: var(--leaf); color: #fff; }
 .seg button[aria-pressed=true][data-ans=na] { background: var(--ink); border-color: var(--ink); color: #fff; }
 .notelink { appearance: none; border: 0; background: none; color: var(--peel-dark); font: inherit; font-size: 14px; font-weight: 700; padding: 8px 0 0; cursor: pointer; }
 .item textarea { margin-top: 10px; min-height: 64px; }
