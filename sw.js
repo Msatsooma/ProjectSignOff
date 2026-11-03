@@ -2,7 +2,7 @@
 //
 // IMPORTANT: change VERSION every time any app file changes. Phones only pick up a
 // new version when this line is different. Keep it in step with APP_VERSION in app.js.
-const VERSION = 'signoff-0.4.0';
+const VERSION = 'signoff-0.4.1';
 
 const CORE = [
   './',
@@ -28,7 +28,9 @@ const CORE = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(CORE)));
+  // cache: 'reload' skips the browser's own short-term copy, so an update always
+  // stores the files fresh from the server rather than the ones already on the phone.
+  event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))));
 });
 
 self.addEventListener('activate', event => {

@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.4.1';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
