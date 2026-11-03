@@ -8,11 +8,19 @@
 //
 // Keep each item id unique and unchanged once in use: the data file Claude
 // reads uses these ids to file answers against the job.
+//
+// An item can also have boxes for the installer to write readings in, e.g.
+//   fields: [{ id: 'flow-temp', label: 'Design flow temp', unit: '°C' }]
+//   unit: 'xx'          fixed unit shown after the box
+//   units: ['a', 'b']   installer picks the unit (first one is the default)
+//   signed: true        allow minus figures (gives the full keyboard on phones)
+//   text: true          words rather than a number
+// Readings are optional and print on the PDF under the check.
 
 const CHECKLISTS = [
   {
     id: 'install-signoff',
-    version: 'draft-2',
+    version: 'draft-3',
     draft: true,
     name: 'Installation sign-off',
     fileLabel: 'Install-signoff',
@@ -49,13 +57,43 @@ const CHECKLISTS = [
       {
         title: 'Commissioning',
         items: [
-          { id: 'commissioned', text: 'Heat pump commissioned' }
+          { id: 'commissioned', text: 'Heat pump commissioned' },
+          {
+            id: 'heat-curve', text: 'Flow temperature / heat curve set',
+            fields: [
+              { id: 'flow-temp', label: 'Design flow temp', unit: '°C' },
+              { id: 'outside-temp', label: 'At outside temp', unit: '°C', signed: true },
+              { id: 'slope', label: 'Heat curve slope' },
+              { id: 'level', label: 'Heat curve level', signed: true }
+            ]
+          },
+          {
+            id: 'flow-rate', text: 'Flow rate checked',
+            fields: [{ id: 'flow-rate', label: 'Flow rate', units: ['l/h', 'l/min'] }]
+          },
+          {
+            id: 'dhw-temp', text: 'Hot water set temperature set',
+            fields: [{ id: 'dhw-temp', label: 'Hot water set temp', unit: '°C' }]
+          },
+          { id: 'dhw-programme', text: 'Hot water programme set' },
+          {
+            id: 'legionella', text: 'Legionella cycle set',
+            fields: [
+              { id: 'temp', label: 'Cycle temp', unit: '°C' },
+              { id: 'day', label: 'Day / frequency', text: true }
+            ]
+          },
+          { id: 'ch-programme', text: 'Central heating programme set' }
         ]
       },
       {
         title: 'Handover',
         items: [
           { id: 'customer-shown', text: 'Customer shown how to use the controls' },
+          { id: 'internet-connected', text: 'Unit connected to the internet' },
+          { id: 'remote-access', text: 'Remote access set up for the installer' },
+          { id: 'customer-app', text: 'App set up for the customer' },
+          { id: 'annual-maintenance', text: 'Annual maintenance explained: it is essential to keep the warranty valid, and Satsooma is happy to carry it out' },
           { id: 'handover-pack', text: 'Handover pack and manuals left with the customer' },
           { id: 'site-tidy', text: 'Site left clean and tidy, waste removed' }
         ]

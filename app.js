@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.2.1';
+const APP_VERSION = '0.3.0';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
@@ -147,10 +147,34 @@ function blankForm(checklistId) {
   return {
     draftId: uid(), checklistId, startedAt: new Date().toISOString(),
     jobRef: '', surname: '', engineer: store.get('engineerName') || '', visitDate: todayIso(),
-    answers: {}, notes: {}, snags: '', photos: [],
+    answers: {}, notes: {}, values: {}, units: {}, snags: '', photos: [],
     engineerSig: null, engineerSigAt: null,
     customerNotPresent: false, customerName: '', customerSig: null, customerSigAt: null
   };
+}
+
+function unitFor(it, f) {
+  const key = it.id + '.' + f.id;
+  if (!f.units) return f.unit || '';
+  const u = form.units[key] || store.get('unit.' + key);
+  return f.units.includes(u) ? u : f.units[0];
+}
+
+function fieldsHtml(it) {
+  if (!it.fields) return '';
+  return `<div class="readings">${it.fields.map(f => {
+    const key = it.id + '.' + f.id;
+    const fid = 'v-' + key.replace(/[^a-z0-9-]/gi, '-');
+    const unit = unitFor(it, f);
+    const unitHtml = f.units
+      ? `<select data-unit="${esc(key)}" aria-label="${esc(f.label)} units">${f.units.map(u => `<option value="${esc(u)}"${u === unit ? ' selected' : ''}>${esc(u)}</option>`).join('')}</select>`
+      : (unit ? `<span class="unit">${esc(unit)}</span>` : '');
+    const mode = f.text || f.signed ? 'text' : 'decimal';
+    return `<div class="reading">
+      <label for="${fid}">${esc(f.label)}</label>
+      <div class="rinput"><input type="text" id="${fid}" data-val="${esc(key)}" value="${esc(form.values[key] || '')}" inputmode="${mode}" autocomplete="off"${f.text ? '' : ' autocorrect="off" spellcheck="false"'}>${unitHtml}</div>
+    </div>`;
+  }).join('')}</div>`;
 }
 
 function itemHtml(it) {
@@ -162,6 +186,7 @@ function itemHtml(it) {
     <div class="seg" role="group" aria-label="${esc(it.text)}">
       ${['yes', 'no', 'na'].map(k => `<button type="button" data-ans="${k}" aria-pressed="${a === k}">${ANSWER_LABEL[k]}</button>`).join('')}
     </div>
+    ${fieldsHtml(it)}
     ${showNote ? '' : '<button type="button" class="notelink" data-act="addnote">+ Add a note</button>'}
     <textarea data-note="${esc(it.id)}" placeholder="${a === 'no' ? 'What is outstanding, and what happens next?' : 'Note'}" ${showNote ? '' : 'hidden'}>${esc(note)}</textarea>
   </div>`;
@@ -183,6 +208,8 @@ function sigHtml(who, title, declaration, nameHtml) {
 
 function showForm() {
   const cl = getChecklist(form.checklistId);
+  form.values = form.values || {};   // drafts started on an older version
+  form.units = form.units || {};
   app.innerHTML = `
     <button class="back" data-act="home">‹ Home (your progress is kept)</button>
     ${cl.draft ? `<div class="draftnote"><strong>Test version.</strong> These checklist questions are a draft to try the app out. They'll be replaced with Satsooma's own checklist.</div>` : ''}
@@ -371,7 +398,11 @@ function validate() {
 function buildData(cl, id, createdAt, pdfName) {
   const items = allItems(cl).map(it => ({
     section: it.section, id: it.id, question: it.text,
-    answer: ANSWER_LABEL[form.answers[it.id]], note: (form.notes[it.id] || '').trim()
+    answer: ANSWER_LABEL[form.answers[it.id]], note: (form.notes[it.id] || '').trim(),
+    readings: (it.fields || []).map(f => {
+      const value = ((form.values || {})[it.id + '.' + f.id] || '').trim();
+      return value ? { id: f.id, label: f.label, value, unit: unitFor(it, f) } : null;
+    }).filter(Boolean)
   }));
   const count = k => items.filter(i => i.answer === ANSWER_LABEL[k]).length;
   return {
@@ -528,14 +559,17 @@ async function buildPdf(cl, data) {
     sec.items.forEach(it => {
       const item = data.items.find(i => i.id === it.id);
       const qLines = wrap(item.question, F, 10, qW);
+      const rText = (item.readings || []).map(r => `${r.label}: ${r.value}${r.unit ? ' ' + r.unit : ''}`).join('   |   ');
+      const rLines = rText ? wrap(rText, FB, 9.5, qW) : [];
       const nLines = item.note ? wrap('Note: ' + item.note, FI, 9, qW) : [];
-      const h = qLines.length * 13 + nLines.length * 12 + 10;
+      const h = qLines.length * 13 + rLines.length * 13 + nLines.length * 12 + 10;
       need(h);
       const top = y;
       qLines.forEach((l, i) => text(l, M, top - 10 - i * 13, 10, F));
       const col = item.answer === 'Yes' ? C.leaf : item.answer === 'No' ? C.no : C.grey;
       rightText(item.answer, W - M, top - 10, 10.5, FB, col);
-      nLines.forEach((l, i) => text(l, M, top - 10 - qLines.length * 13 - i * 12, 9, FI, C.grey));
+      rLines.forEach((l, i) => text(l, M, top - 11 - qLines.length * 13 - i * 13, 9.5, FB, C.peel));
+      nLines.forEach((l, i) => text(l, M, top - 10 - qLines.length * 13 - rLines.length * 13 - i * 12, 9, FI, C.grey));
       y = top - h;
       page.drawLine({ start: { x: M, y: y + 3 }, end: { x: W - M, y: y + 3 }, thickness: 0.5, color: C.line });
     });
@@ -799,13 +833,19 @@ app.addEventListener('input', e => {
     scheduleDraftSave(); refreshErrors();
     return;
   }
+  const v = e.target.dataset.val;
+  if (v) { form.values[v] = e.target.value; scheduleDraftSave(); return; }
   const n = e.target.dataset.note;
   if (n) { form.notes[n] = e.target.value; e.target.closest('.item')?.classList.remove('invalid'); scheduleDraftSave(); refreshErrors(); }
 });
 
 app.addEventListener('change', async e => {
   if (!form) return;
-  if (e.target.id === 'customerNotPresent') {
+  if (e.target.dataset.unit) {
+    form.units[e.target.dataset.unit] = e.target.value;
+    store.set('unit.' + e.target.dataset.unit, e.target.value);
+    scheduleDraftSave();
+  } else if (e.target.id === 'customerNotPresent') {
     form.customerNotPresent = e.target.checked;
     $('#customerBlock').hidden = e.target.checked;
     if (!e.target.checked) pads.customer?.setup();
