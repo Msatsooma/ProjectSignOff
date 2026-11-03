@@ -126,6 +126,8 @@ input:focus, textarea:focus { outline: 3px solid rgba(242,101,49,.35); border-co
 .seg button[aria-pressed=true][data-ans=na] { background: var(--ink); border-color: var(--ink); color: #fff; }
 .notelink { appearance: none; border: 0; background: none; color: var(--peel-dark); font: inherit; font-size: 14px; font-weight: 700; padding: 8px 0 0; cursor: pointer; }
 .item textarea { margin-top: 10px; min-height: 64px; }
+.itemphoto { margin-top: 12px; }
+.itemphoto .photo { width: 140px; }
 .readings { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px 12px; margin-top: 12px; }
 .reading label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
 .rinput { display: flex; align-items: center; gap: 8px; }

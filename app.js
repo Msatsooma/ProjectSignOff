@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.3.1';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
@@ -147,7 +147,7 @@ function blankForm(checklistId) {
   return {
     draftId: uid(), checklistId, startedAt: new Date().toISOString(),
     jobRef: '', surname: '', engineer: store.get('engineerName') || '', visitDate: todayIso(),
-    answers: {}, notes: {}, values: {}, units: {}, snags: '', photos: [],
+    answers: {}, notes: {}, values: {}, units: {}, itemPhotos: {}, snags: '', photos: [],
     engineerSig: null, engineerSigAt: null,
     customerNotPresent: false, customerName: '', customerSig: null, customerSigAt: null
   };
@@ -177,6 +177,14 @@ function fieldsHtml(it) {
   }).join('')}</div>`;
 }
 
+function itemPhotoHtml(it) {
+  if (!it.photo) return '';
+  const p = form.itemPhotos[it.id];
+  return `<div class="itemphoto" data-photo-for="${esc(it.id)}">${p
+    ? `<div class="photo"><img src="${p}" alt="${esc(it.photo)}"><button type="button" data-act="rmitemphoto" data-id="${esc(it.id)}" aria-label="Remove photo">×</button></div>`
+    : `<label class="btn block filebtn"><input type="file" accept="image/*" capture="environment" data-itemphoto="${esc(it.id)}">📷 Take photo</label>`}</div>`;
+}
+
 function itemHtml(it) {
   const a = form.answers[it.id];
   const note = form.notes[it.id] || '';
@@ -187,6 +195,7 @@ function itemHtml(it) {
       ${['yes', 'no', 'na'].map(k => `<button type="button" data-ans="${k}" aria-pressed="${a === k}">${ANSWER_LABEL[k]}</button>`).join('')}
     </div>
     ${fieldsHtml(it)}
+    ${itemPhotoHtml(it)}
     ${showNote ? '' : '<button type="button" class="notelink" data-act="addnote">+ Add a note</button>'}
     <textarea data-note="${esc(it.id)}" placeholder="${a === 'no' ? 'What is outstanding, and what happens next?' : 'Note'}" ${showNote ? '' : 'hidden'}>${esc(note)}</textarea>
   </div>`;
@@ -210,6 +219,7 @@ function showForm() {
   const cl = getChecklist(form.checklistId);
   form.values = form.values || {};   // drafts started on an older version
   form.units = form.units || {};
+  form.itemPhotos = form.itemPhotos || {};
   app.innerHTML = `
     <button class="back" data-act="home">‹ Home (your progress is kept)</button>
     ${cl.draft ? `<div class="draftnote"><strong>Test version.</strong> These checklist questions are a draft to try the app out. They'll be replaced with Satsooma's own checklist.</div>` : ''}
@@ -386,6 +396,10 @@ function validate() {
   noNote.forEach(it => $('#item-' + it.id)?.classList.add('invalid'));
   if (noNote.length) errs.push({ id: 'item-' + noNote[0].id, msg: `Add a note to every check answered No (${noNote.length})` });
 
+  const noPhoto = allItems(cl).filter(it => it.photo && form.answers[it.id] === 'yes' && !(form.itemPhotos || {})[it.id]);
+  noPhoto.forEach(it => $('#item-' + it.id)?.classList.add('invalid'));
+  noPhoto.forEach(it => errs.push({ id: 'item-' + it.id, msg: `Take the photo: ${it.photo}` }));
+
   if (!form.engineerSig) bad('sig-engineer', 'Engineer signature needed');
   if (!form.customerNotPresent) {
     if (!form.customerName.trim()) bad('f-customerName', 'Add the customer name, or tick "Customer not present"');
@@ -402,7 +416,8 @@ function buildData(cl, id, createdAt, pdfName) {
     readings: (it.fields || []).map(f => {
       const value = ((form.values || {})[it.id + '.' + f.id] || '').trim();
       return value ? { id: f.id, label: f.label, value, unit: unitFor(it, f) } : null;
-    }).filter(Boolean)
+    }).filter(Boolean),
+    ...(it.photo ? { photo: !!(form.itemPhotos || {})[it.id] } : {})
   }));
   const count = k => items.filter(i => i.answer === ANSWER_LABEL[k]).length;
   return {
@@ -420,7 +435,7 @@ function buildData(cl, id, createdAt, pdfName) {
     summary: { checks: items.length, yes: count('yes'), no: count('no'), na: count('na') },
     items,
     outstanding: form.snags.trim(),
-    photos: form.photos.length,
+    photos: form.photos.length + Object.values(form.itemPhotos || {}).filter(Boolean).length,
     sign_off: {
       engineer: { name: form.engineer.trim(), signed_at: form.engineerSigAt ? ukDateTime(new Date(form.engineerSigAt)) : '' },
       customer: form.customerNotPresent
@@ -624,11 +639,15 @@ async function buildPdf(cl, data) {
   }
 
   // Photos
-  if (form.photos.length) {
+  const shots = [
+    ...allItems(cl).filter(it => it.photo && (form.itemPhotos || {})[it.id]).map(it => ({ url: form.itemPhotos[it.id], caption: it.photo })),
+    ...form.photos.map((url, i) => ({ url, caption: `Photo ${i + 1} of ${form.photos.length}` }))
+  ];
+  if (shots.length) {
     const imgs = [];
-    for (const p of form.photos) imgs.push(await doc.embedJpg(dataUrlBytes(p)));
+    for (const s of shots) imgs.push(await doc.embedJpg(dataUrlBytes(s.url)));
     const firstH = Math.min(CW / imgs[0].width, 290 / imgs[0].height) * imgs[0].height;
-    heading(`Photos (${form.photos.length})`, firstH + 22);
+    heading(`Photos (${shots.length})`, firstH + 22);
     for (let i = 0; i < imgs.length; i++) {
       const img = imgs[i];
       const sc = Math.min(CW / img.width, 290 / img.height);
@@ -636,7 +655,7 @@ async function buildPdf(cl, data) {
       need(h + 22);
       page.drawImage(img, { x: M + (CW - w) / 2, y: y - h, width: w, height: h });
       y -= h + 4;
-      text(`Photo ${i + 1} of ${form.photos.length}`, M, y - 9, 9, FI, C.grey);
+      text(shots[i].caption, M, y - 9, 9, FI, C.grey);
       y -= 20;
     }
   }
@@ -803,6 +822,13 @@ app.addEventListener('click', async e => {
   else if (act === 'discard') { if (!armed(btn, 'Tap again to discard')) return; await clearDraft(); showHome(); }
   else if (act === 'open') { await showReport(btn.dataset.id); }
   else if (act === 'addnote') { const ta = $('textarea', btn.closest('[data-item]')); ta.hidden = false; ta.focus(); btn.remove(); }
+  else if (act === 'rmitemphoto') {
+    const id = btn.dataset.id;
+    delete form.itemPhotos[id];
+    const wrapEl = btn.closest('[data-photo-for]');
+    wrapEl.outerHTML = itemPhotoHtml(getChecklist(form.checklistId).sections.flatMap(s => s.items).find(i => i.id === id));
+    scheduleDraftSave(); refreshErrors();
+  }
   else if (act === 'rmphoto') { form.photos.splice(Number(btn.dataset.i), 1); $('#photos').innerHTML = photosHtml(); updatePhotoButton(); scheduleDraftSave(); }
   else if (act === 'clearsig') { pads[btn.dataset.who]?.clear(); }
   else if (act === 'finish') { await finish(btn); }
@@ -845,6 +871,16 @@ app.addEventListener('change', async e => {
     form.units[e.target.dataset.unit] = e.target.value;
     store.set('unit.' + e.target.dataset.unit, e.target.value);
     scheduleDraftSave();
+  } else if (e.target.dataset.itemphoto) {
+    const id = e.target.dataset.itemphoto;
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try { form.itemPhotos[id] = await downscale(file); }
+    catch (err) { toast('That photo couldn\'t be read. Please try again.'); return; }
+    const it = getChecklist(form.checklistId).sections.flatMap(s => s.items).find(i => i.id === id);
+    e.target.closest('[data-photo-for]').outerHTML = itemPhotoHtml(it);
+    $('#item-' + id)?.classList.remove('invalid');
+    scheduleDraftSave(); refreshErrors();
   } else if (e.target.id === 'customerNotPresent') {
     form.customerNotPresent = e.target.checked;
     $('#customerBlock').hidden = e.target.checked;

@@ -16,11 +16,14 @@
 //   signed: true        allow minus figures (gives the full keyboard on phones)
 //   text: true          words rather than a number
 // Readings are optional and print on the PDF under the check.
+//
+// photo: 'Caption' gives a check its own "Take photo" button. If the check is
+// answered Yes, the photo is required; it prints on the PDF with that caption.
 
 const CHECKLISTS = [
   {
     id: 'install-signoff',
-    version: 'draft-3',
+    version: 'draft-4',
     draft: true,
     name: 'Installation sign-off',
     fileLabel: 'Install-signoff',
@@ -34,6 +37,7 @@ const CHECKLISTS = [
           { id: 'hp-sited', text: 'Heat pump sited as agreed, level and secure on its base or feet' },
           { id: 'hp-clearances', text: "Clearances around the unit meet the manufacturer's instructions" },
           { id: 'condensate', text: 'Condensate drains away safely' },
+          { id: 'hp-id-photo', text: "Photo taken of the outdoor unit's ID / serial number label (for the warranty)", photo: 'Outdoor unit ID / serial label' },
           { id: 'ext-pipework', text: 'External pipework insulated and weatherproofed' }
         ]
       },
