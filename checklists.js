@@ -26,7 +26,7 @@
 const CHECKLISTS = [
   {
     id: 'install-signoff',
-    version: 'draft-6',
+    version: 'draft-7',
     draft: true,
     name: 'Installation sign-off',
     fileLabel: 'Install-signoff',
@@ -36,7 +36,7 @@ const CHECKLISTS = [
     customerAcknowledgements: [
       'I have been shown how to use my heating and hot water controls',
       'The app has been set up for me',
-      'I understand my heat pump needs servicing every year to keep the warranty valid, and that Satsooma is happy to do this',
+      'I understand my heat pump needs servicing every year to keep the warranty valid',
       'I understand my handover pack will be emailed to me within 14 days'
     ],
     customerDeclaration: 'By signing, I confirm the points above.',
@@ -115,7 +115,7 @@ const CHECKLISTS = [
           { id: 'internet-connected', text: 'Unit connected to the internet' },
           { id: 'remote-access', text: 'Remote access set up for the installer' },
           { id: 'customer-app', text: 'App set up for the customer' },
-          { id: 'annual-maintenance', text: 'Annual maintenance explained: it is essential to keep the warranty valid, and Satsooma is happy to carry it out' },
+          { id: 'annual-maintenance', text: 'Annual maintenance explained: it is essential to keep the warranty valid' },
           { id: 'handover-pack-email', text: 'Customer told their handover pack will be emailed within 14 days' },
           { id: 'site-tidy', text: 'Site left clean and tidy, waste removed' }
         ]
