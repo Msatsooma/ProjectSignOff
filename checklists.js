@@ -26,7 +26,7 @@
 const CHECKLISTS = [
   {
     id: 'install-signoff',
-    version: 'draft-7',
+    version: 'draft-8',
     draft: true,
     name: 'Installation sign-off',
     fileLabel: 'Install-signoff',
@@ -73,7 +73,15 @@ const CHECKLISTS = [
         title: 'Electrics and controls',
         items: [
           { id: 'electrics-complete', text: 'Electrical work complete and isolator fitted' },
-          { id: 'controls-set', text: 'Controls and sensors installed and set up' }
+          { id: 'controls-set', text: 'Controls and sensors installed and set up' },
+          {
+            id: 'room-stat', text: 'Room thermostat / room influence installed?',
+            // Own Yes / No so a "No" (weather compensation only) doesn't demand a note
+            choices: [
+              { key: 'yes', label: 'Yes' },
+              { key: 'none', label: 'No' }
+            ]
+          }
         ]
       },
       {
