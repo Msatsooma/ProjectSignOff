@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.4.5';
+const APP_VERSION = '0.4.6';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
@@ -754,6 +754,12 @@ function renderReport(fresh) {
         <p class="muted small">Choose <strong>Mail</strong>, type or pick the email address, then tap Send. The PDF and the data file are already attached.</p>
         <button class="btn block" data-act="viewpdf">View PDF</button>
       </div>
+      ${sendTrouble === r.id ? `<div class="stack sendtrouble">
+        <p><strong>This phone wouldn't pass the report to Mail.</strong> Try one of these:</p>
+        <button class="btn block" data-act="sendpdf">Try sending the PDF only</button>
+        <button class="btn block" data-act="savefiles">Save the files to the phone</button>
+        <p class="muted small">If you save them, open your email app, start a new email to the office and attach both files from Downloads. If this keeps happening, open the app in Chrome rather than another browser.</p>
+      </div>` : ''}
     </section>
     <section class="card">
       <h2>Send history</h2>
@@ -772,12 +778,15 @@ function downloadBlob(blob, name) {
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
 
-async function sendReport() {
+// Set to a report's id when sharing failed on it, to show the fallback options.
+let sendTrouble = null;
+
+async function sendReport(pdfOnly = false) {
   const r = openRec;
   const pdfFile = new File([r.pdf], r.pdfName, { type: 'application/pdf' });
-  let files = [pdfFile, new File([r.json], r.baseName + '_data.json', { type: 'application/json' })];
+  let files = pdfOnly ? [pdfFile] : [pdfFile, new File([r.json], r.baseName + '_data.json', { type: 'application/json' })];
   const can = f => !navigator.canShare || navigator.canShare({ files: f });
-  if (navigator.share && !can(files)) {
+  if (navigator.share && !pdfOnly && !can(files)) {
     // Some Android phones won't share .json files; the same data as .txt is fine for Claude.
     files = [pdfFile, new File([r.json], r.baseName + '_data.txt', { type: 'text/plain' })];
     if (!can(files)) files = [pdfFile];
@@ -794,11 +803,18 @@ async function sendReport() {
     try {
       // No title or text: passing them makes iPhones attach an extra text file.
       await navigator.share({ files });
+      sendTrouble = null;
       await record(files.length === 1 ? 'Sent (PDF only: this phone would not attach the data file)' : 'Sent', true);
       toast('Report handed to the app you chose.');
     } catch (e) {
       if (e && e.name === 'AbortError') await record('Not sent (cancelled)', false);
-      else { await record('Not sent (' + (e && e.message ? e.message : 'sharing failed') + ')', false); toast('Couldn\'t open the share sheet. Please try again.', 5000); }
+      else {
+        // e.g. Edge on Android says it can share files, then refuses ("Permission denied").
+        sendTrouble = r.id;
+        await record('Not sent (' + (e && e.message ? e.message : 'sharing failed') + ')', false);
+        toast('Couldn\'t open the share sheet. See the options below.', 5000);
+        $('.sendtrouble')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
   } else {
     downloadBlob(new Blob([r.pdf], { type: 'application/pdf' }), r.pdfName);
@@ -854,6 +870,14 @@ app.addEventListener('click', async e => {
   else if (act === 'clearsig') { pads[btn.dataset.who]?.clear(); }
   else if (act === 'finish') { await finish(btn); }
   else if (act === 'send') { await sendReport(); }
+  else if (act === 'sendpdf') { await sendReport(true); }
+  else if (act === 'savefiles') {
+    downloadBlob(new Blob([openRec.pdf], { type: 'application/pdf' }), openRec.pdfName);
+    downloadBlob(new Blob([openRec.json], { type: 'application/json' }), openRec.baseName + '_data.json');
+    openRec.history.push({ at: new Date().toISOString(), result: 'Files saved to the phone (attach them to an email yourself)' });
+    await putReport(openRec); renderReport(false);
+    toast('Saved to Downloads. Attach both files to an email to the office.', 6000);
+  }
   else if (act === 'viewpdf') {
     const url = URL.createObjectURL(new Blob([openRec.pdf], { type: 'application/pdf' }));
     const w = window.open(url, '_blank');
