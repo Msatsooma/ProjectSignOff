@@ -2,7 +2,7 @@
 //
 // IMPORTANT: change VERSION every time any app file changes. Phones only pick up a
 // new version when this line is different. Keep it in step with APP_VERSION in app.js.
-const VERSION = 'signoff-0.5.1';
+const VERSION = 'signoff-0.5.2';
 
 const CORE = [
   './',

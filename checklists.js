@@ -31,6 +31,7 @@ const CHECKLISTS = [
     name: 'Installation sign-off',
     fileLabel: 'Install-signoff',
     blurb: 'End-of-installation checks and customer sign-off',
+    showSummary: false,   // no 'N checks: Yes | No | N/A' line on the PDF
     engineerDeclaration: 'I confirm the work above has been completed and checked as recorded.',
     // The customer signs only these points, on their own card, not the technical checks.
     customerAcknowledgements: [
