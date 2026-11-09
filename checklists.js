@@ -134,7 +134,7 @@ const CHECKLISTS = [
   ,
   {
     id: 'service-report',
-    version: 'draft-2',
+    version: 'draft-3',
     draft: true,
     name: 'Service report',
     fileLabel: 'Service-report',
@@ -152,8 +152,18 @@ const CHECKLISTS = [
     ],
     // Customer-facing summaries. They print near the top of the PDF, before the detailed checks.
     textBlocks: [
-      { id: 'work-done', title: 'Work carried out', label: 'A short summary for the customer of what was done', placeholder: 'e.g. Cleaned the outdoor unit and checked the system over. Everything working well.', required: true },
-      { id: 'recommendations', title: 'Recommendations', label: 'Anything the customer should know about or consider (performance, repairs, improvements). Leave blank if none.', emptyText: 'No recommendations at this visit.' }
+      {
+        id: 'work-done', title: 'Work carried out', required: true,
+        label: 'For the customer',
+        help: 'The customer reads this on their report, so write it for them in plain English: what you did, and how the system is running.',
+        example: 'Cleaned the outdoor unit, fan and heat exchanger. Checked the system pressure, re-charged the expansion vessels and cleaned the filter. Checked the controls and settings, and balanced the radiators. Your heat pump is running well.'
+      },
+      {
+        id: 'recommendations', title: 'Recommendations', emptyText: 'No recommendations at this visit.',
+        label: 'For the customer',
+        help: 'The customer reads this too. Include anything you answered No to, and anything else they should fix or consider, and why it matters. Leave blank if there is nothing.',
+        example: 'The insulation on the outdoor pipework has gaps. We recommend replacing it to cut heat loss and protect the pipes from frost. We can quote for this.'
+      }
     ],
     // Office-only notes: kept in the data file, not printed on the customer's PDF.
     officeNotes: {
@@ -192,9 +202,9 @@ const CHECKLISTS = [
         items: [
           { id: 'od-debris', text: 'Debris and leaves cleared from around and inside the unit' },
           { id: 'od-fan-hx', text: 'Fan and heat exchanger cleaned and inspected' },
-          { id: 'od-condensate', text: 'Condensate drains away freely' },
+          { id: 'od-condensate', text: 'Condensate drains away safely through a working drain or soakaway' },
           { id: 'od-mounting', text: 'Base or feet secure, anti-vibration mounts in good condition' },
-          { id: 'od-insulation', text: 'External pipework insulation intact (photo it if not)' },
+          { id: 'od-insulation', text: 'External pipework insulation continuous, sealed and adequate (photo it if not)' },
           { id: 'od-wear', text: 'Visual check for any signs of wear or damage' }
         ]
       },
@@ -220,7 +230,7 @@ const CHECKLISTS = [
           { id: 'leaks', text: 'Visual check for leaks on the cylinder and pipework' },
           { id: 'pump', text: 'Circulating pump working' },
           { id: 'cyl-valves', text: 'Unvented cylinder: pressure relief and temperature / pressure relief valves operated by hand' },
-          { id: 'cyl-discharge', text: 'Unvented cylinder: tundish and discharge pipework clear and in good condition' }
+          { id: 'cyl-discharge', text: 'Unvented cylinder: tundish and discharge pipework (D1 and D2) clear, secured and terminated correctly' }
         ]
       },
       {

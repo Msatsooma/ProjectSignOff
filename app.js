@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.5.2';
+const APP_VERSION = '0.5.3';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
@@ -282,7 +282,9 @@ function showForm() {
       <h2>${esc(b.title)}</h2>
       <div class="field">
         <label for="tx-${esc(b.id)}">${esc(b.label)}</label>
-        <textarea id="tx-${esc(b.id)}" data-text="${esc(b.id)}" placeholder="${esc(b.placeholder || '')}">${esc(form.texts[b.id] || '')}</textarea>
+        ${b.help ? `<p class="help">${esc(b.help)}</p>` : ''}
+        ${b.example ? `<p class="help"><em>Example: ${esc(b.example)}</em></p>` : ''}
+        <textarea id="tx-${esc(b.id)}" data-text="${esc(b.id)}" rows="6" placeholder="${esc(b.placeholder || '')}">${esc(form.texts[b.id] || '')}</textarea>
       </div></section>`).join('')}
     <section class="card">
       <h2>Photos</h2>
