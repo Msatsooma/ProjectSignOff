@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.5.3';
+const APP_VERSION = '0.5.4';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
@@ -277,7 +277,7 @@ function showForm() {
         <input type="date" id="visitDate" data-field="visitDate" value="${esc(form.visitDate)}">
       </div>
     </section>
-    ${cl.sections.map(sec => `<section class="card"><h2>${esc(sec.title)}</h2>${sec.items.map(itemHtml).join('')}</section>`).join('')}
+    ${cl.sections.map(sec => `<section class="card${sec.style === 'design' ? ' design' : ''}"><h2>${esc(sec.title)}</h2>${sec.items.map(itemHtml).join('')}</section>`).join('')}
     ${(cl.textBlocks || []).map(b => `<section class="card" id="t-${esc(b.id)}">
       <h2>${esc(b.title)}</h2>
       <div class="field">
@@ -535,7 +535,7 @@ async function buildPdf(cl, data) {
   const FB = await doc.embedFont(StandardFonts.HelveticaBold);
   const FI = await doc.embedFont(StandardFonts.HelveticaOblique);
   const hex = h => rgb(parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255);
-  const C = { peel: hex('F26531'), leaf: hex('257A47'), no: hex('B3261E'), ink: hex('1A1A1A'), grey: hex('625B55'), line: hex('E6DCD1'), cream: hex('FBF6F2'), pith: hex('F0DCBF'), white: rgb(1, 1, 1) };
+  const C = { peel: hex('F26531'), leaf: hex('257A47'), no: hex('B3261E'), ink: hex('1A1A1A'), grey: hex('625B55'), line: hex('E6DCD1'), cream: hex('FBF6F2'), pith: hex('F0DCBF'), panel: hex('EEEDEB'), white: rgb(1, 1, 1) };
   const W = 595.28, H = 841.89, M = 42, CW = W - 2 * M, BOTTOM = 56;
   let page, y;
 
@@ -640,24 +640,38 @@ async function buildPdf(cl, data) {
   // Checklist
   const qW = CW - 70;
   cl.sections.forEach(sec => {
-    heading(sec.title);
+    const isDesign = sec.style === 'design';
+    if (isDesign) {   // quiet grey panel: heading and its checks drawn on a light grey box
+      const est = sec.items.reduce((t, it) => {
+        const item = data.items.find(i => i.id === it.id);
+        const rt = (item.readings || []).map(r => `${r.label}: ${r.value}${r.unit ? ' ' + r.unit : ''}`).join('   |   ');
+        return t + wrap(item.question, F, 10, qW).length * 13 + (rt ? wrap(rt, FB, 9.5, qW).length * 13 : 0)
+          + (item.note ? wrap('Note: ' + item.note, FI, 9, qW).length * 12 : 0) + 10;
+      }, 0);
+      need(est + 44);
+      page.drawRectangle({ x: M, y: y - est - 36, width: CW, height: est + 36, color: C.panel });
+      text(sec.title.toUpperCase(), M + 12, y - 17, 10.5, FB, C.grey);
+      y -= 26;
+    } else heading(sec.title);
+    const X = isDesign ? M + 12 : M, XR = isDesign ? W - M - 12 : W - M, qWs = isDesign ? qW - 24 : qW;
     sec.items.forEach(it => {
       const item = data.items.find(i => i.id === it.id);
-      const qLines = wrap(item.question, F, 10, qW);
+      const qLines = wrap(item.question, F, 10, qWs);
       const rText = (item.readings || []).map(r => `${r.label}: ${r.value}${r.unit ? ' ' + r.unit : ''}`).join('   |   ');
-      const rLines = rText ? wrap(rText, FB, 9.5, qW) : [];
-      const nLines = item.note ? wrap('Note: ' + item.note, FI, 9, qW) : [];
+      const rLines = rText ? wrap(rText, FB, 9.5, qWs) : [];
+      const nLines = item.note ? wrap('Note: ' + item.note, FI, 9, qWs) : [];
       const h = qLines.length * 13 + rLines.length * 13 + nLines.length * 12 + 10;
       need(h);
       const top = y;
-      qLines.forEach((l, i) => text(l, M, top - 10 - i * 13, 10, F));
+      qLines.forEach((l, i) => text(l, X, top - 10 - i * 13, 10, F));
       const col = item.choice ? C.ink : item.answer === 'Yes' ? C.leaf : item.answer === 'No' ? C.no : C.grey;
-      rightText(item.answer, W - M, top - 10, 10.5, FB, col);
-      rLines.forEach((l, i) => text(l, M, top - 11 - qLines.length * 13 - i * 13, 9.5, FB, C.peel));
-      nLines.forEach((l, i) => text(l, M, top - 10 - qLines.length * 13 - rLines.length * 13 - i * 12, 9, FI, C.grey));
+      rightText(item.answer, XR, top - 10, 10.5, FB, col);
+      rLines.forEach((l, i) => text(l, X, top - 11 - qLines.length * 13 - i * 13, 9.5, FB, C.peel));
+      nLines.forEach((l, i) => text(l, X, top - 10 - qLines.length * 13 - rLines.length * 13 - i * 12, 9, FI, C.grey));
       y = top - h;
-      page.drawLine({ start: { x: M, y: y + 3 }, end: { x: W - M, y: y + 3 }, thickness: 0.5, color: C.line });
+      if (!isDesign) page.drawLine({ start: { x: M, y: y + 3 }, end: { x: W - M, y: y + 3 }, thickness: 0.5, color: C.line });
     });
+    if (isDesign) y -= 22;
   });
 
   // Outstanding (left off the PDF when the checklist says these notes are for the office only)

@@ -20,14 +20,16 @@
 // choices: [{ key, label }, ...] replaces Yes / No / N/A with your own answers
 // for that check (e.g. which frost protection was used).
 //
+// A section with style: 'design' shows in a grey panel in the app and on the PDF.
+//
 // photo: 'Caption' gives a check its own "Take photo" button. If the check is
 // answered Yes, the photo is required; it prints on the PDF with that caption.
 
 const CHECKLISTS = [
   {
     id: 'install-signoff',
-    version: 'draft-8',
-    draft: true,
+    version: 'draft-9',
+    draft: false,
     name: 'Installation sign-off',
     fileLabel: 'Install-signoff',
     blurb: 'End-of-installation checks and customer sign-off',
@@ -43,6 +45,15 @@ const CHECKLISTS = [
     customerDeclaration: 'By signing, I confirm the points above.',
     customerNote: 'The technical checks in this report are recorded and signed off by the installer.',
     sections: [
+      {
+        // style: 'design' shows this section in a quiet grey panel, ahead of the technical checks.
+        title: 'Design',
+        style: 'design',
+        items: [
+          { id: 'design-approved', text: 'System design (heat loss, heat pump and emitter sizing) reviewed and approved by the MCS technical lead, and the system installed to that design',
+            fields: [{ id: 'design-ref', label: 'Design reference (e.g. heat loss report date)', text: true }] }
+        ]
+      },
       {
         title: 'Outdoor unit',
         items: [
@@ -135,7 +146,7 @@ const CHECKLISTS = [
   {
     id: 'service-report',
     version: 'draft-3',
-    draft: true,
+    draft: false,
     name: 'Service report',
     fileLabel: 'Service-report',
     blurb: 'Annual heat pump service checks and customer report',
