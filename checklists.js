@@ -133,7 +133,7 @@ const CHECKLISTS = [
   ,
   {
     id: 'service-report',
-    version: 'draft-1',
+    version: 'draft-2',
     draft: true,
     name: 'Service report',
     fileLabel: 'Service-report',
@@ -161,6 +161,7 @@ const CHECKLISTS = [
       placeholder: 'Leave blank if nothing to follow up',
       onPdf: false
     },
+    showSummary: false,   // no 'N checks: Yes | No | N/A' line on the PDF
     signOffTitle: 'Engineer sign-off',
     engineerDeclaration: 'I confirm the service work above has been carried out and checked as recorded.',
     customerAcknowledgements: [

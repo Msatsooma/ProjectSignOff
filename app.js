@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.5.1';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
@@ -619,9 +619,11 @@ async function buildPdf(cl, data) {
   rows.forEach(([k, v]) => { text(k, M + 12, ry, 9.5, FB, C.grey); text(v, M + 120, ry, 10, F); ry -= 17; });
   y -= boxH + 14;
 
-  const s = data.summary;
-  text(`${s.checks} checks:  ${s.yes} Yes  |  ${s.no} No  |  ${s.na} N/A`, M, y - 10, 11, FB, s.no ? C.no : C.leaf);
-  y -= 24;
+  if (cl.showSummary !== false) {   // the "N checks: Yes | No | N/A" line
+    const s = data.summary;
+    text(`${s.checks} checks:  ${s.yes} Yes  |  ${s.no} No  |  ${s.na} N/A`, M, y - 10, 11, FB, s.no ? C.no : C.leaf);
+    y -= 24;
+  }
 
   // Free-text sections (e.g. work carried out, recommendations): the customer reads these first
   (data.text_sections || []).forEach(t => {
