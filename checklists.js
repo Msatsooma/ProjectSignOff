@@ -130,4 +130,146 @@ const CHECKLISTS = [
       }
     ]
   }
+  ,
+  {
+    id: 'service-report',
+    version: 'draft-1',
+    draft: true,
+    name: 'Service report',
+    fileLabel: 'Service-report',
+    blurb: 'Annual heat pump service checks and customer report',
+    // Service jobs don't have a fixed reference structure yet, so the reference is optional and any format is accepted.
+    jobRef: {
+      required: false,
+      strict: false,
+      label: 'Job reference (if there is one)',
+      placeholder: 'SERV-2026-09-502',
+      help: 'Use the SERV reference if you have it. Otherwise leave blank: the address below identifies the job.'
+    },
+    headerFields: [
+      { id: 'address', label: 'Address or postcode', pdfLabel: 'Address', help: 'Optional, but helps the office match the report to the customer' }
+    ],
+    // Customer-facing summaries. They print near the top of the PDF, before the detailed checks.
+    textBlocks: [
+      { id: 'work-done', title: 'Work carried out', label: 'A short summary for the customer of what was done', placeholder: 'e.g. Cleaned the outdoor unit and checked the system over. Everything working well.', required: true },
+      { id: 'recommendations', title: 'Recommendations', label: 'Anything the customer should know about or consider (performance, repairs, improvements). Leave blank if none.', emptyText: 'No recommendations at this visit.' }
+    ],
+    // Office-only notes: kept in the data file, not printed on the customer's PDF.
+    officeNotes: {
+      title: 'Notes for the office',
+      label: 'Office only, not shown on the customer report: parts to order, quotes to send, return visits',
+      placeholder: 'Leave blank if nothing to follow up',
+      onPdf: false
+    },
+    signOffTitle: 'Engineer sign-off',
+    engineerDeclaration: 'I confirm the service work above has been carried out and checked as recorded.',
+    customerAcknowledgements: [
+      'The engineer has talked me through the work carried out and any recommendations',
+      'I understand my heat pump should be serviced again in about 12 months'
+    ],
+    customerDeclaration: 'By signing, I confirm the points above.',
+    customerNote: 'The technical checks in this report are recorded and signed off by the engineer.',
+    sections: [
+      {
+        title: 'Equipment',
+        items: [
+          {
+            id: 'equipment', text: 'Heat pump details recorded',
+            fields: [
+              { id: 'make-model', label: 'Outdoor unit make and model', text: true },
+              { id: 'outdoor-serial', label: 'Outdoor unit serial number', text: true },
+              { id: 'indoor-model', label: 'Indoor unit / cylinder model', text: true },
+              { id: 'indoor-serial', label: 'Indoor unit serial number', text: true }
+            ]
+          },
+          { id: 'id-photo', text: "Photo taken of the outdoor unit's ID / serial number label", photo: 'Outdoor unit ID / serial label' }
+        ]
+      },
+      {
+        title: 'Outdoor unit',
+        items: [
+          { id: 'od-debris', text: 'Debris and leaves cleared from around and inside the unit' },
+          { id: 'od-fan-hx', text: 'Fan and heat exchanger cleaned and inspected' },
+          { id: 'od-condensate', text: 'Condensate drains away freely' },
+          { id: 'od-mounting', text: 'Base or feet secure, anti-vibration mounts in good condition' },
+          { id: 'od-insulation', text: 'External pipework insulation intact (photo it if not)' },
+          { id: 'od-wear', text: 'Visual check for any signs of wear or damage' }
+        ]
+      },
+      {
+        title: 'System and indoor plant',
+        items: [
+          {
+            id: 'sys-pressure', text: 'System pressure checked and topped up if needed',
+            fields: [
+              { id: 'before', label: 'Pressure before', unit: 'bar' },
+              { id: 'after', label: 'Pressure after', unit: 'bar' }
+            ]
+          },
+          {
+            id: 'vessels', text: 'Expansion vessels checked and re-charged',
+            fields: [
+              { id: 'heating', label: 'Heating vessel charge', unit: 'bar' },
+              { id: 'dhw', label: 'Hot water vessel charge', unit: 'bar' }
+            ]
+          },
+          { id: 'strainer', text: 'Strainer / filter cleaned' },
+          { id: 'frost-valves', text: 'Anti-freeze valves checked' },
+          { id: 'leaks', text: 'Visual check for leaks on the cylinder and pipework' },
+          { id: 'pump', text: 'Circulating pump working' },
+          { id: 'cyl-valves', text: 'Unvented cylinder: pressure relief and temperature / pressure relief valves operated by hand' },
+          { id: 'cyl-discharge', text: 'Unvented cylinder: tundish and discharge pipework clear and in good condition' }
+        ]
+      },
+      {
+        title: 'Electrics and controls',
+        items: [
+          { id: 'elec-visual', text: 'Visual check of electrical connections and isolator' },
+          {
+            id: 'fault-history', text: 'Fault history checked',
+            fields: [{ id: 'codes', label: 'Fault codes found (if any)', text: true }]
+          },
+          { id: 'settings', text: 'Settings and set-up checked' }
+        ]
+      },
+      {
+        title: 'Performance',
+        items: [
+          {
+            id: 'heat-curve', text: 'Flow temperature / heat curve checked',
+            fields: [
+              { id: 'flow-temp', label: 'Design flow temp', unit: '°C' },
+              { id: 'slope', label: 'Heat curve slope' },
+              { id: 'level', label: 'Heat curve level', signed: true }
+            ]
+          },
+          {
+            id: 'flow-rate', text: 'Flow rate checked',
+            fields: [{ id: 'flow-rate', label: 'Flow rate', units: ['l/h', 'l/min'] }]
+          },
+          {
+            id: 'dhw-settings', text: 'Hot water and legionella settings checked',
+            fields: [
+              { id: 'dhw-temp', label: 'Hot water set temp', unit: '°C' },
+              { id: 'legionella-temp', label: 'Legionella cycle temp', unit: '°C' }
+            ]
+          },
+          {
+            id: 'scop', text: 'System performance (SCOP) checked',
+            fields: [
+              { id: 'scop', label: 'SCOP' },
+              { id: 'period', label: 'Period covered', text: true }
+            ]
+          }
+        ]
+      },
+      {
+        title: 'Finish',
+        items: [
+          { id: 'left-running', text: 'Heat pump left running normally' },
+          { id: 'site-tidy', text: 'Site left clean and tidy' }
+        ]
+      }
+    ]
+  }
 ];

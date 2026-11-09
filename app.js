@@ -2,7 +2,7 @@
 // Keep APP_VERSION in step with VERSION in sw.js.
 'use strict';
 
-const APP_VERSION = '0.4.6';
+const APP_VERSION = '0.5.0';
 const JOB_REF_RE = /^(ASHP|SERV)-\d{4}-\d{2}-\d{3}$/;
 const MAX_PHOTOS = 8;
 
@@ -149,7 +149,7 @@ function blankForm(checklistId) {
   return {
     draftId: uid(), checklistId, startedAt: new Date().toISOString(),
     jobRef: '', surname: '', engineer: store.get('engineerName') || '', visitDate: todayIso(),
-    answers: {}, notes: {}, values: {}, units: {}, itemPhotos: {}, snags: '', photos: [],
+    answers: {}, notes: {}, values: {}, units: {}, itemPhotos: {}, texts: {}, extra: {}, snags: '', photos: [],
     engineerSig: null, engineerSigAt: null,
     customerNotPresent: false, customerName: '', customerSig: null, customerSigAt: null
   };
@@ -217,25 +217,57 @@ function sigHtml(who, title, declaration, nameHtml) {
   </div>`;
 }
 
+// Per-checklist rules for the job reference. Install: strict ASHP/SERV format.
+// Service: optional, any format (service jobs don't have a fixed structure yet).
+function refRules(cl) {
+  const r = cl.jobRef || {};
+  return {
+    required: r.required !== false,
+    strict: r.strict !== false,
+    label: r.label || 'Job reference',
+    placeholder: r.placeholder || 'ASHP-2026-09-104',
+    help: r.help || 'As it appears on the job sheet: ASHP-YYYY-MM-NNN or SERV-YYYY-MM-NNN'
+  };
+}
+// The "notes" card. onPdf: false keeps it off the PDF (it still goes in the data file).
+function officeNotes(cl) {
+  const o = cl.officeNotes || {};
+  return {
+    title: o.title || 'Outstanding or follow-up',
+    label: o.label || 'Anything left to do, snags, or notes for the office',
+    placeholder: o.placeholder || 'Leave blank if nothing is outstanding',
+    onPdf: o.onPdf !== false
+  };
+}
+
 function showForm() {
   const cl = getChecklist(form.checklistId);
   form.values = form.values || {};   // drafts started on an older version
   form.units = form.units || {};
   form.itemPhotos = form.itemPhotos || {};
+  form.texts = form.texts || {};
+  form.extra = form.extra || {};
+  const ref = refRules(cl);
+  const office = officeNotes(cl);
   app.innerHTML = `
     <button class="back" data-act="home">‹ Home (your progress is kept)</button>
     ${cl.draft ? `<div class="draftnote"><strong>Trial version.</strong> We're still fine-tuning this checklist, so questions may be added, removed or reworded. If anything is missing or unclear, let Martin know.</div>` : ''}
     <section class="card">
       <h1>${esc(cl.name)}</h1>
       <div class="field" id="f-jobRef">
-        <label for="jobRef">Job reference</label>
-        <input type="text" id="jobRef" data-field="jobRef" value="${esc(form.jobRef)}" placeholder="ASHP-2026-09-104" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text">
-        <p class="help">As it appears on the job sheet: ASHP-YYYY-MM-NNN or SERV-YYYY-MM-NNN</p>
+        <label for="jobRef">${esc(ref.label)}</label>
+        <input type="text" id="jobRef" data-field="jobRef" value="${esc(form.jobRef)}" placeholder="${esc(ref.placeholder)}" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text">
+        <p class="help">${esc(ref.help)}</p>
       </div>
       <div class="field" id="f-surname">
         <label for="surname">Customer surname</label>
         <input type="text" id="surname" data-field="surname" value="${esc(form.surname)}" autocomplete="off">
       </div>
+      ${(cl.headerFields || []).map(h => `<div class="field" id="f-x-${esc(h.id)}">
+        <label for="x-${esc(h.id)}">${esc(h.label)}</label>
+        <input type="text" id="x-${esc(h.id)}" data-extra="${esc(h.id)}" value="${esc(form.extra[h.id] || '')}" autocomplete="off">
+        ${h.help ? `<p class="help">${esc(h.help)}</p>` : ''}
+      </div>`).join('')}
       <div class="field" id="f-engineer">
         <label for="engineer">Engineer name</label>
         <input type="text" id="engineer" data-field="engineer" value="${esc(form.engineer)}" autocomplete="name">
@@ -246,6 +278,12 @@ function showForm() {
       </div>
     </section>
     ${cl.sections.map(sec => `<section class="card"><h2>${esc(sec.title)}</h2>${sec.items.map(itemHtml).join('')}</section>`).join('')}
+    ${(cl.textBlocks || []).map(b => `<section class="card" id="t-${esc(b.id)}">
+      <h2>${esc(b.title)}</h2>
+      <div class="field">
+        <label for="tx-${esc(b.id)}">${esc(b.label)}</label>
+        <textarea id="tx-${esc(b.id)}" data-text="${esc(b.id)}" placeholder="${esc(b.placeholder || '')}">${esc(form.texts[b.id] || '')}</textarea>
+      </div></section>`).join('')}
     <section class="card">
       <h2>Photos</h2>
       <p class="muted small">Optional. Up to ${MAX_PHOTOS}. They go into the PDF.</p>
@@ -253,14 +291,14 @@ function showForm() {
       <label class="btn block filebtn" id="addPhotoBtn"><input type="file" id="photoInput" accept="image/*" multiple>+ Add photos</label>
     </section>
     <section class="card">
-      <h2>Outstanding or follow-up</h2>
+      <h2>${esc(office.title)}</h2>
       <div class="field">
-        <label for="snags">Anything left to do, snags, or notes for the office</label>
-        <textarea id="snags" data-field="snags" placeholder="Leave blank if nothing is outstanding">${esc(form.snags)}</textarea>
+        <label for="snags">${esc(office.label)}</label>
+        <textarea id="snags" data-field="snags" placeholder="${esc(office.placeholder)}">${esc(form.snags)}</textarea>
       </div>
     </section>
     <section class="card">
-      <h2>Installer sign-off</h2>
+      <h2>${esc(cl.signOffTitle || 'Installer sign-off')}</h2>
       ${sigHtml('engineer', 'Engineer', cl.engineerDeclaration, '')}
     </section>
     <section class="card customercard">
@@ -390,8 +428,12 @@ function validate() {
   $$('.invalid', app).forEach(el => el.classList.remove('invalid'));
   const bad = (id, msg) => { errs.push({ id, msg }); $('#' + id)?.classList.add('invalid'); };
 
-  if (!form.jobRef) bad('f-jobRef', 'Add the job reference');
-  else if (!JOB_REF_RE.test(form.jobRef)) bad('f-jobRef', 'Job reference should look like ASHP-2026-09-104 or SERV-2026-09-104');
+  const ref = refRules(cl);
+  const jobRef = form.jobRef.trim();
+  if (!jobRef) { if (ref.required) bad('f-jobRef', 'Add the job reference'); }
+  else if (ref.strict && !JOB_REF_RE.test(jobRef)) bad('f-jobRef', 'Job reference should look like ASHP-2026-09-104 or SERV-2026-09-104');
+  (cl.headerFields || []).forEach(h => { if (h.required && !(form.extra[h.id] || '').trim()) bad('f-x-' + h.id, 'Add the ' + h.label.toLowerCase()); });
+  (cl.textBlocks || []).forEach(b => { if (b.required && !(form.texts[b.id] || '').trim()) bad('t-' + b.id, 'Fill in: ' + b.title); });
   if (!form.surname.trim()) bad('f-surname', 'Add the customer surname');
   if (!form.engineer.trim()) bad('f-engineer', 'Add your name');
   if (!form.visitDate) bad('f-visitDate', 'Add the visit date');
@@ -434,7 +476,9 @@ function buildData(cl, id, createdAt, pdfName) {
     app_version: APP_VERSION,
     report_id: id,
     checklist: { id: cl.id, name: cl.name, version: cl.version, draft: !!cl.draft },
-    job_reference: form.jobRef,
+    job_reference: form.jobRef.trim(),
+    header: Object.fromEntries((cl.headerFields || []).map(h => [h.id, ((form.extra || {})[h.id] || '').trim()])),
+    text_sections: (cl.textBlocks || []).map(b => ({ id: b.id, title: b.title, text: ((form.texts || {})[b.id] || '').trim() })),
     customer_surname: form.surname.trim(),
     engineer: form.engineer.trim(),
     visit_date: isoToUk(form.visitDate),
@@ -443,6 +487,7 @@ function buildData(cl, id, createdAt, pdfName) {
     summary: { checks: items.filter(i => !i.choice).length, yes: count('yes'), no: count('no'), na: count('na') },
     items,
     outstanding: form.snags.trim(),
+    outstanding_on_pdf: officeNotes(cl).onPdf,
     photos: form.photos.length + Object.values(form.itemPhotos || {}).filter(Boolean).length,
     sign_off: {
       engineer: { name: form.engineer.trim(), signed_at: form.engineerSigAt ? ukDateTime(new Date(form.engineerSigAt)) : '' },
@@ -480,7 +525,8 @@ function dataUrlBytes(u) {
 async function buildPdf(cl, data) {
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
   const doc = await PDFDocument.create();
-  doc.setTitle(`${cl.name} - ${data.job_reference}`);
+  const refShown = data.job_reference || data.customer_surname;
+  doc.setTitle(`${cl.name} - ${refShown}`);
   doc.setAuthor('Satsooma');
   doc.setCreator(`Satsooma Sign-off app ${APP_VERSION}`);
   const F = await doc.embedFont(StandardFonts.Helvetica);
@@ -531,7 +577,7 @@ async function buildPdf(cl, data) {
       if (logo) { const lh = 24; page.drawImage(logo, { x: M, y: H - 54, width: logo.width * lh / logo.height, height: lh }); }
       else text('SATSOOMA', M, H - 50, 24, FB, C.white);
       text(cl.name.toUpperCase(), M, H - 76, 11, FB, C.white);
-      rightText(data.job_reference, W - M, H - 50, 15, FB, C.white);
+      rightText(refShown, W - M, H - 50, 15, FB, C.white);
       rightText(`Visit ${data.visit_date}`, W - M, H - 76, 10, F, C.white);
       y = H - 96 - 22;
       if (cl.draft) {
@@ -544,7 +590,7 @@ async function buildPdf(cl, data) {
       let tx = M;
       if (logo) { const lh = 11; const lw = logo.width * lh / logo.height; page.drawImage(logo, { x: M, y: H - 20.5, width: lw, height: lh }); tx = M + lw + 12; }
       else { text('SATSOOMA', M, H - 20, 9, FB, C.white); tx = M + 70; }
-      text(`${cl.name}  |  ${data.job_reference}`, tx, H - 19, 9, FB, C.white);
+      text(`${cl.name}  |  ${refShown}`, tx, H - 19, 9, FB, C.white);
       y = H - 30 - 24;
     }
   }
@@ -562,7 +608,9 @@ async function buildPdf(cl, data) {
 
   // Job details box
   const rows = [
-    ['Job reference', data.job_reference], ['Customer', data.customer_surname], ['Engineer', data.engineer],
+    ['Job reference', data.job_reference || 'Not given'], ['Customer', data.customer_surname],
+    ...(cl.headerFields || []).filter(h => data.header[h.id]).map(h => [h.pdfLabel || h.label, data.header[h.id]]),
+    ['Engineer', data.engineer],
     ['Visit date', data.visit_date], ['Report created', data.created_at], ['Report ID', data.report_id]
   ];
   const boxH = rows.length * 17 + 14;
@@ -574,6 +622,16 @@ async function buildPdf(cl, data) {
   const s = data.summary;
   text(`${s.checks} checks:  ${s.yes} Yes  |  ${s.no} No  |  ${s.na} N/A`, M, y - 10, 11, FB, s.no ? C.no : C.leaf);
   y -= 24;
+
+  // Free-text sections (e.g. work carried out, recommendations): the customer reads these first
+  (data.text_sections || []).forEach(t => {
+    heading(t.title);
+    const b = (cl.textBlocks || []).find(x => x.id === t.id) || {};
+    const body = t.text || b.emptyText || 'Nothing recorded';
+    const f = t.text ? F : FI, col = t.text ? C.ink : C.grey;
+    wrap(body, f, 10, CW).forEach(l => { need(14); text(l, M, y - 10, 10, f, col); y -= 14; });
+    y -= 8;
+  });
 
   // Checklist
   const qW = CW - 70;
@@ -598,13 +656,15 @@ async function buildPdf(cl, data) {
     });
   });
 
-  // Outstanding
-  heading('Outstanding or follow-up');
-  wrap(data.outstanding || 'Nothing recorded', data.outstanding ? F : FI, 10, CW).forEach(l => { need(14); text(l, M, y - 10, 10, data.outstanding ? F : FI, data.outstanding ? C.ink : C.grey); y -= 14; });
-  y -= 6;
+  // Outstanding (left off the PDF when the checklist says these notes are for the office only)
+  if (data.outstanding_on_pdf) {
+    heading(officeNotes(cl).title);
+    wrap(data.outstanding || 'Nothing recorded', data.outstanding ? F : FI, 10, CW).forEach(l => { need(14); text(l, M, y - 10, 10, data.outstanding ? F : FI, data.outstanding ? C.ink : C.grey); y -= 14; });
+    y -= 6;
+  }
 
   // Sign-off
-  heading('Installer sign-off');
+  heading(cl.signOffTitle || 'Installer sign-off', wrap(cl.engineerDeclaration, FI, 9, CW).length * 12 + 130);   // keep the heading with the signature
   async function sigBlock(label, declaration, name, at, sigUrl) {
     const dLines = wrap(declaration, FI, 9, CW);
     need(dLines.length * 12 + 130);
@@ -710,13 +770,14 @@ async function finish(btn) {
     const cl = getChecklist(form.checklistId);
     const createdAt = new Date();
     const id = 'R-' + createdAt.getFullYear() + pad(createdAt.getMonth() + 1) + pad(createdAt.getDate()) + '-' + pad(createdAt.getHours()) + pad(createdAt.getMinutes()) + pad(createdAt.getSeconds()) + '-' + uid().slice(0, 4).toUpperCase();
-    const baseName = `${form.jobRef}_${cl.fileLabel}_${form.visitDate}_${pad(createdAt.getHours())}${pad(createdAt.getMinutes())}`;
+    const safe = v => String(v || '').trim().replace(/[^A-Za-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+    const baseName = `${safe(form.jobRef) || safe(form.surname) || 'NoRef'}_${cl.fileLabel}_${form.visitDate}_${pad(createdAt.getHours())}${pad(createdAt.getMinutes())}`;
     const pdfName = baseName + '.pdf';
     const data = buildData(cl, id, createdAt, pdfName);
     const pdf = await buildPdf(cl, data);
     const rec = {
       id, baseName, pdfName, pdf, json: JSON.stringify(data, null, 2),
-      jobRef: form.jobRef, surname: form.surname.trim(), visitDate: form.visitDate,
+      jobRef: form.jobRef.trim() || '(no reference)', surname: form.surname.trim(), visitDate: form.visitDate,
       checklistId: cl.id, checklistName: cl.name,
       createdAt: createdAt.toISOString(), status: 'not-sent', sentAt: null, history: []
     };
@@ -894,7 +955,7 @@ app.addEventListener('input', e => {
   const f = e.target.dataset.field;
   if (f) {
     let v = e.target.value;
-    if (f === 'jobRef') {
+    if (f === 'jobRef' && refRules(getChecklist(form.checklistId)).strict) {
       const up = v.toUpperCase().replace(/\s+/g, '');
       if (up !== v) { const p = e.target.selectionStart; e.target.value = up; try { e.target.setSelectionRange(p, p); } catch (_) {} }
       v = up;
@@ -904,6 +965,10 @@ app.addEventListener('input', e => {
     scheduleDraftSave(); refreshErrors();
     return;
   }
+  const t = e.target.dataset.text;
+  if (t) { form.texts[t] = e.target.value; e.target.closest('.invalid')?.classList.remove('invalid'); scheduleDraftSave(); refreshErrors(); return; }
+  const x = e.target.dataset.extra;
+  if (x) { form.extra[x] = e.target.value; e.target.closest('.invalid')?.classList.remove('invalid'); scheduleDraftSave(); refreshErrors(); return; }
   const v = e.target.dataset.val;
   if (v) { form.values[v] = e.target.value; scheduleDraftSave(); return; }
   const n = e.target.dataset.note;
