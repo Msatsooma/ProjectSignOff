@@ -28,7 +28,7 @@
 const CHECKLISTS = [
   {
     id: 'install-signoff',
-    version: 'draft-9',
+    version: 'draft-10',
     draft: false,
     name: 'Installation sign-off',
     fileLabel: 'Install-signoff',
@@ -46,11 +46,10 @@ const CHECKLISTS = [
     customerNote: 'The technical checks in this report are recorded and signed off by the installer.',
     sections: [
       {
-        // style: 'design' shows this section in a quiet grey panel, ahead of the technical checks.
+        // Shown first, styled like the other sections (plain since v0.5.5).
         title: 'Design',
-        style: 'design',
         items: [
-          { id: 'design-approved', text: 'System design (heat loss, heat pump and emitter sizing) reviewed and approved by the MCS technical lead, and the system installed to that design',
+          { id: 'design-approved', text: 'System design (incl. heat loss, heat pump and emitter sizing) approved by MCS technical supervisor and the system has been installed as designed',
             fields: [{ id: 'design-ref', label: 'Design reference (e.g. heat loss report date)', text: true }] }
         ]
       },
